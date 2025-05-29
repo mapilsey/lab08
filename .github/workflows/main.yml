@@ -1,0 +1,29 @@
+name: Simple Build and Run
+
+on: [push, pull_request]
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+    - name: Create build directory
+      run: mkdir -p build
+
+    - name: Configure project
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build project
+      run: cmake --build build --config Release
+
+    - name: Run application
+      run: |
+        mkdir -p logs
+        echo -e "Hello from GitHub Actions\nSecond line\nThird line" | ./build/demo
+        echo "--- Log file content: ---"
+        cat logs/log.txt
