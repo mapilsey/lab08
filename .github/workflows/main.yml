@@ -22,6 +22,8 @@ jobs:
       run: cmake --build build --config Release
 
     - name: Run application
+      env:
+        LOG_PATH: logs/log.txt
       run: |
         mkdir -p logs
         echo -e "Hello from GitHub Actions\nSecond line\nThird line" | ./build/demo
