@@ -1,6 +1,10 @@
-name: Simple Build and Run
+name: Docker Logger Pipeline
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build-and-run:
@@ -9,23 +13,44 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+    - name: Create logs directory
+      run: mkdir -p logs
 
-    - name: Create build directory
-      run: mkdir -p build
+    - name: Build Docker image
+      run: docker build -t logger-app .
 
-    - name: Configure project
-      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-
-    - name: Build project
-      run: cmake --build build --config Release
-
-    - name: Run application
-      env:
-        LOG_PATH: logs/log.txt
+    - name: Run with test data
       run: |
-        mkdir -p logs
-        echo -e "Hello from GitHub Actions\nSecond line\nThird line" | ./build/demo
-        echo "--- Log file content: ---"
+        echo -e "GitHub Action Test Line 1\nTest Line 2\nFinal Line" | \
+        docker run -i -v $(pwd)/logs:/home/logs logger-app
+        
+    - name: Show logs content
+      run: |
+        echo "--- Log file content ---"
         cat logs/log.txt
+        echo "-----------------------"
+
+    - name: Save logs as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: application-logs
+        path: logs/
+        retention-days: 7
+
+    - name: Generate test report
+      run: |
+        echo "## Test Results" >> report.md
+        echo "- Build status: SUCCESS" >> report.md
+        echo "- Log entries: $(wc -l < logs/log.txt)" >> report.md
+        echo "### Log snippet" >> report.md
+        echo '```' >> report.md
+        head -n 3 logs/log.txt >> report.md
+        echo '```' >> report.md
+        echo "![Logs screenshot](https://github.com/${{ github.repository }}/actions/workflows/${{ github.workflow }}/badge.svg)" >> report.md
+
+    - name: Upload report
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-report
+        path: report.md
+        retention-days: 7
